@@ -36,7 +36,7 @@ def ProperComparisonChartExtractor(states, BASE_PATH=None, base_url='https://www
 
             for const_id in batch_constituency_ids:
                 print(f'Constituency ID: {const_id}')
-                constituency_link = f'{base_url}{state}2024/index.php?action=show_candidates&constituency_id={const_id}'
+                constituency_link = f'{base_url}{state}2024/comparisonchart.php?constituency_id={const_id}'
                 print(f'Link: {constituency_link}')
                 filename = pages_dir / f"{state}_{const_id}.html"
                 ExtractPage(driver, constituency_link, filename)
@@ -84,8 +84,7 @@ def ExtractPage(driver, url, filePath):
         print("An error occurred:", e)
 
 def ExtractCandidateData(Base_Path, filePath, constID, state):
-    table_selector = "table.w3-table.w3-bordered"
-    header_selector = "tr"
+    table_selector = "table.w3-table"
     save_path = f"{Base_Path}/Proper{state}DataFile.csv"
     
     print(filePath)
@@ -104,24 +103,31 @@ def ExtractCandidateData(Base_Path, filePath, constID, state):
     constituency_name = constituency_text.split(':')[1].strip()  # Add strip() to remove leading/trailing whitespace
 
     # Find the table using class selectors
-    table = soup.select_one(table_selector)
+    table = soup.select_one(table_selector) # table
     if table:
         # Extract header row
-        header_row = table.select_one(header_selector)
-        headers = [header.text.strip() for header in header_row.select("th")]
+        header_selector = "tbody.w3-small tr th"
+        header_row = table.select(header_selector)
+        headers = [header.text.strip() for header in header_row]
         headers.append("candidate_link")
+        # print(f"Headers: {headers}")
 
         # Extract data rows
-        rows = table.find_all('tr')[1:]  # Skip the header row
-        
+        candidate_selector = "tbody.w3-border tr"
+        rows = table.select(candidate_selector)  # Skip the header row
+        # print(f"Rows- {rows[0]}")
+
         data_list = []
         for row in rows:
-            cols = row.find_all('td')
-            data = [col.text.strip() for col in cols]
-            link = row.find('a').get('href')
-            data.append(link)
-            data_list.append(data)
-        
+            if row.find('a'):
+                # print(f"Rows: {row}")
+                cols = row.find_all('td')
+                data = [col.text.strip() for col in cols]
+                link = row.find('a').get('href')
+                # print(f"Link: {link}")
+                data.append(link)
+                data_list.append(data)
+                # print(f"Data List: {data_list}")
         df = pd.DataFrame(data_list, columns=headers)
 
         # Add 'constituency_id' columns
