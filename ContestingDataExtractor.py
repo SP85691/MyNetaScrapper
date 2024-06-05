@@ -16,7 +16,7 @@ def ContestingDataExtractor(states, base_url='https://www.myneta.info/'):
     for state in states:
         print(f"Extracting Contesting Data: {state}")
         ContestingBaseUrl = base_url + state + '2024/index.php?action=recontestAssetsComparison'
-        filename = f"./Data/{state}/Contesting{state}Data.csv"
+        filename = f"../MyNetaScrapper/data/{state}/Contesting{state}Data.csv"
         ContestingData(driver, ContestingBaseUrl, filename, state)
 
     driver.quit()
@@ -24,7 +24,8 @@ def ContestingDataExtractor(states, base_url='https://www.myneta.info/'):
 
 def ContestingData(driver, url, filename, state):
     driver.get(url)
-
+    c_year = 2023
+    o_year = 2019
     try:
         # Wait for the table to be present on the page
         WebDriverWait(driver, 10).until(
@@ -37,28 +38,47 @@ def ContestingData(driver, url, filename, state):
         # Find the table with the specified selector
         table_selector = "table.w3-bordered"
         table = soup.select_one(table_selector)
-
+        # print(f"Table: {table}")
         if table:
-            # Extract data from the table using BeautifulSoup
-            rows = table.select('tr')
-            c_year = 2024
-            o_year = 2019
-            # Extract specific columns
-            columns_to_extract = ['Name (Party)', f'Total Assets in {state} {c_year}',
-                                  f'Total Assets in {state} {o_year}', 'Asset Increase',
-                                  '% Increase in Asset']
+            rows = table.find_all('tr')
+            # print(f"Table Selector: {rows}")
 
-            # Initialize an empty list to store data
+            # Create a DataFrame
+            columns_to_extract  = [
+                "Candidate URL",
+                "Name",
+                f"Total Assets in {state} {c_year}",
+                f"Total Assets in {state} {o_year}",
+                "Asset Increase",
+                "Increase in Asset"
+            ]
+            
             data = []
 
-            for row in rows:  # Skip the header row
+            # Process each row except the header
+            for row in rows[1:]:  # Skip the header row
                 cols = row.select('td')
-                # Exclude the 'Sno' and 'Remarks' columns
-                row_data = [col.get_text(strip=True) for i, col in enumerate(cols) if i not in [0, len(cols)-1]]
-                if not row_data:
-                    print(f"Empty row found: {row}")
-                else:
+                # print(f"cols: {cols}")
+                if len(cols) >= 6:  # Make sure there are at least 6 columns
+                    candidate_url = cols[1].find('a')['href'] if cols[1].find('a') else None
+                    name = cols[1].get_text(strip=True)
+                    total_assets_current_year = cols[2].get_text(strip=True)
+                    total_assets_other_year = cols[3].get_text(strip=True)
+                    asset_increase = cols[4].get_text(strip=True)
+                    increase_in_asset = cols[5].get_text(strip=True)
+                    
+                    row_data = [
+                        candidate_url,
+                        name,
+                        total_assets_current_year,
+                        total_assets_other_year,
+                        asset_increase,
+                        increase_in_asset
+                    ]
                     data.append(row_data)
+                    # print(data)
+                else:
+                    print("Insufficient columns in the row. Skipping...")
 
             # Make sure the number of columns in data matches the specified columns_to_extract
             if all(len(row_data) == len(columns_to_extract) for row_data in data):
@@ -78,10 +98,14 @@ def ContestingData(driver, url, filename, state):
 
                 print("Data extracted and saved successfully.")
             else:
-                print(f"Mismatch in the number of columns in the data. len(row_data): {len(row_data)}, columns_to_extract: {columns_to_extract}")
+                print(f"Mismatch in the number of columns in the data. len(row_data): {len(row_data)}, columns_to_extract: {len(columns_to_extract)}")
 
         else:
             print("Table not found on the page.")
 
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    finally:
+        # Close the browser
+        driver.quit()

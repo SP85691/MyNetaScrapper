@@ -4,10 +4,10 @@ from Hit_and_trail import ProperComparisonChartExtractor
 from ContestingDataExtractor import ContestingDataExtractor
 
 STATES = [
-            # 'ArunachalPradesh',
-            # 'Odisha',
-            # 'Sikkim',
-            # 'AndhraPradesh',
+            'ArunachalPradesh',
+            'Odisha',
+            'Sikkim',
+            'AndhraPradesh',
             'LokSabha'
         ]
 
